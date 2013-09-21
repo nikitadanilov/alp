@@ -2,11 +2,13 @@ package alp
 
 import "os"
 import "fmt"
+import "container/list"
 
 type World struct {
-	dir string
-	obj map[oid]*Obj
-	max oid
+	dir   string
+	obj   map[oid]*Obj
+	max   oid
+	dirty dirtylist
 }
 
 func (w *World) makeobj(id oid) *Obj {
@@ -48,16 +50,6 @@ func (w *World) CreateObj() (o *Obj) {
 	return
 }
 
-func (w *World) Store(os []*Obj) (err error) {
-	for _, o := range os {
-		err  = o.Store()
-		if err != nil {
-			break
-		}
-	}
-	return
-}
-
 func (w *World) Open(dir string) (err error) {
 	var fd *os.File
 
@@ -88,5 +80,29 @@ func (w *World) Print() {
 	for _, o := range w.obj {
 		fmt.Println(o)
 	}
+}
+
+type dirtylist struct {
+	laundry list.List
+}
+
+func (d *dirtylist) add(o *Obj) {
+	for e := d.laundry.Front(); e != nil; e = e.Next() {
+		if cast(e) == o {
+			return
+		}
+	}
+	d.laundry.PushBack(o)
+	return
+}
+
+func (d *dirtylist) clean(w *World) (err error) {
+	for e := d.laundry.Front(); e != nil; e = e.Next() {
+		err = cast(e).Store()
+		if err != nil {
+			break
+		}
+	}
+	return
 }
 
